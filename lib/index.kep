@@ -1,0 +1,273 @@
+/**
+ * 
+ */
+package Blotre
+with
+    import 'request' request,
+    import 'request-promise' rp,
+    import 'extend' extend,
+    import 'url' url
+in {
+
+static console;
+
+var CONF = {
+    protocol: 'http',//'https',
+    host: 'localhost:9000'//'blot.re'
+};
+
+var ROOT := "/v0/";
+var API_ROOT := ROOT + "api/";
+var OAUTH2_ROOT := ROOT + "oauth2/";
+
+var getUrl := \options ->
+    url.format <| extend(CONF, options);
+
+/*
+ ******************************************************************************/
+/**
+ * Main Blot're state object.
+ */
+Blotre := function\client creds =self-> {
+    self.client = (client || {});
+    self.creds = (creds || {});
+};
+
+Blotre.create := \client creds -> new Blotre(client, creds);
+
+/**
+ * Updates the raw creds used to talk to Blot're.
+ * 
+ * Does not perform any validation.
+ */
+Blotre.prototype.setCreds := \creds ={client}->
+    new Blotre(client, creds);
+
+/* Authorization
+ ******************************************************************************/
+/**
+ * Get the authorization URI for the current client.
+ * 
+ * When a user visits this API, 
+ */
+Blotre.prototype.getAuthorizationUrl := \={client}->
+    url.format {
+        pathname: getUrl { pathname: OAUTH2_ROOT + 'authorize' },
+        query: {
+            response_type: 'code',
+            client_id: client.client_id,
+            redirect_uri: client.redirect_uri
+        }
+    };
+
+/**
+ */
+Blotre.prototype.acccessTokenEndpoint := \grantType options ={client}->
+    rp.post({
+        uri: getUrl { pathname: OAUTH2_ROOT + 'access_token' },
+        qs: extend({
+            grant_type: grantType,
+            client_id: client.client_id,
+            client_secret: client.client_secret,
+            redirect_uri: client.redirect_uri
+        }, options || {})
+    })
+    .then(JSON.parse \> \creds ->
+        new Blotre(client, creds))
+    .catch(.response.toJSON());
+
+/**
+ * Exchange an authorization code for client credentials.
+ * 
+ * If successful, returns a new Client that uses these credentials.
+ */
+Blotre.prototype.redeemAuthorizationCode := \code =self->
+    self.acccessTokenEndpoint @ 'authorization_code' { code: code };
+
+/**
+ * Attempt to exchange a refresh token for new creds.
+ * 
+ * If successful, returns a new Client that uses these credentials.
+ */
+Blotre.prototype.redeemRefreshToken := \token =self->
+    self.acccessTokenEndpoint @ 'refresh_token' { refresh_token: token };
+
+/**
+ * Attempt to exchange one time code for creds.
+ * 
+ * If successful, returns a new Client that uses these credentials.
+ */
+Blotre.prototype.redeemOnetimeCode := \code =self->
+    self.acccessTokenEndpoint @ 'https://oauth2grant.blot.re/onetime_code' { code: code };
+
+/* Requests
+ ******************************************************************************/
+/**
+ * 
+ */
+Blotre.prototype.makeRequest := \options =self->
+    rp(options)
+        .then(JSON.parse)
+        .catch \ e -> {
+            
+        };
+
+/**
+ * GET request.
+ */
+Blotre.prototype.get := \path options =self->
+    self.makeRequest {
+        method: "GET",
+        uri: getUrl { pathname: API_ROOT + path },
+        qs: options || {}
+    };
+
+/**
+ * POST request.
+ */
+Blotre.prototype.post := \path body =self->
+    self.makeRequest {
+        method: "POST",
+        uri: getUrl { pathname: API_ROOT + path },
+        headers: {
+            'content-type': 'application/json',
+            'authorization': ?self.creds
+                :'Bearer ' + self.creds.access_token
+                :''
+        },
+        body: JSON.stringify body
+    };
+
+/**
+ * PUT request.
+ */
+Blotre.prototype.put := \path body =self->
+    self.makeRequest {
+        method: "PUT",
+        uri: getUrl { pathname: API_ROOT + path },
+        headers: {
+            'content-type': 'application/json',
+            'authorization': ?self.creds
+                :'Bearer ' + self.creds.access_token
+                :''
+        },
+        body: JSON.stringify body
+    };
+
+/**
+ * DELETE request.
+ */
+Blotre.prototype.del := \path  =self->
+    self.makeRequest {
+        method: "DELETE",
+        uri: getUrl { pathname: API_ROOT + path }
+    };
+
+/* User Operations
+ ******************************************************************************/
+/**
+ * Get a user by id.
+ */
+Blotre.prototype.getUser := \userId =self->
+    self.get <| "user/" + userId;
+
+/* Stream Operations
+ ******************************************************************************/
+/**
+ * Stream lookup.
+ */
+Blotre.prototype.getStreams := \options =self->
+    self.get @ "stream" options;
+
+/**
+ * Create a new stream.
+ */
+Blotre.prototype.createStream := \body =self->
+    self.put @ "stream" body;
+
+/**
+ * Get a stream.
+ */
+Blotre.prototype.getStream := \id options =self->
+    self.get("stream/" + id, options);
+
+/**
+ * Delete an existing stream.
+ */
+Blotre.prototype.deleteStream := \id =self->
+    self.del @ "stream" id;
+
+/**
+ * Get the status of a stream.
+ */
+Blotre.prototype.getStreamStatus := \id options =self->
+    self.get("stream/" + id, options);
+
+/**
+ * Update the status of a stream.
+ */
+Blotre.prototype.setStreamStatus := \id body =self->
+    self.post("stream/" + id + '/status', body);
+
+/**
+ * Get the children of a stream.
+ */
+Blotre.prototype.getStreamChildren := \id options =self->
+    self.get('stream/' + id + '/children', options);
+
+/**
+ * Get the child of a stream.
+ */
+Blotre.prototype.getChild := \streamId childId options =self->
+    self.get('stream/' + streamId + '/children/' + childId, options);
+
+/**
+ * Add a new child to a stream.
+ */
+Blotre.prototype.createChild := \streamId childId =self->
+    self.put('stream/' + streamId + '/children/' + childId);
+
+/**
+ * Remove a child from a stream.
+ */
+Blotre.prototype.deleteChild := \streamId childId =self->
+    self.del('stream/' + streamId + '/children/' + childId);
+
+/* Stream Operations
+ ******************************************************************************/
+/**
+ * 
+ */
+Blotre.createTemp := \ -> null;
+
+var test := Blotre.create @ {
+    client_id: '5558ef1330042320bd1ff8b2',
+    client_secret: 'Y2JkNzY3ZWMtODVlZS00NjM5LWEyNmUtNzJkOGY2NjdjYTNl',
+    redirect_uri: "http://localhost:50000"
+} {
+    access_token: 'OWM5MGQ1YTYtMzJlNy00NWFhLTljNjgtM2ZhZTkzM2JmM2Nl'
+};
+
+console.log <| test.getAuthorizationUrl();
+
+/*test.redeemAuthorizationCode('NTE5NTIxMDctOTkzNy00Mjc4LWE4NWEtM2MyYzMzNjUyNTA3')
+    .then(console.log)
+    .catch(console.error);
+*/
+test.getUser("5550f2a63004a531be8820c5")
+    .then(console.log)
+    .catch(console.error);
+
+
+
+
+test.setStreamStatus('5550fcc9300496217de54ebf', { color: '#f0000f'})
+    .then(console.log)
+    .catch(console.error);
+
+test.getStream('5550fcc9300496217de54ebf')
+    .then(console.log)
+    .catch(console.error);
+
+}
+

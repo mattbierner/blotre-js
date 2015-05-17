@@ -1,0 +1,16 @@
+{
+    "name": "xxx",
+    "version": "0.0.0",
+    "description": "",
+    "author": "Matt Bierner",
+    "license": "MIT",
+    "keywords": [],
+
+    "main": "index.js",
+    
+    "dependencies": {
+        "request": "2.55.x",
+        "request-promise": "0.4.2",
+        "extend": "2.0.x"
+    }
+}
