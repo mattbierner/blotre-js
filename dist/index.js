@@ -13,6 +13,11 @@ var request = require("request"),
     }),
     getUrl = (function(options) {
         return url.format(extend(CONF, options));
+    }),
+    isExpiredResponse = (function(response) {
+        var challenge;
+        return ((response.statusCode === 401) && ((challenge = response.headers["www-authenticate"]), (challenge &&
+            challenge.match("error=\"invalid_token\""))));
     });
 (Blotre = (function(client, creds) {
     var self = this;
@@ -80,10 +85,17 @@ var request = require("request"),
         code: code
     }));
 }));
-(Blotre.prototype.makeRequest = (function(options) {
+(Blotre.prototype.makeRequest = (function(options, noRetry) {
     var self = this;
     return rp(options)
-        .then(JSON.parse)["catch"]((function(e) {}));
+        .then(JSON.parse)["catch"]((function(e) {
+            var response, challenge;
+            return ((((!noRetry) && ((response = e.response), ((response.statusCode === 401) && ((
+                    challenge = response.headers["www-authenticate"]), (challenge &&
+                    challenge.match("error=\"invalid_token\"")))))) && self.creds.refresh_token) ? self
+                .redeemRefreshToken(self.creds.refresh_token)
+                .then(self.makeRequest.bind(null, options, true)) : e);
+        }));
 }));
 (Blotre.prototype.get = (function(path, options) {
     var options0, self = this;
@@ -92,7 +104,10 @@ var request = require("request"),
         uri: ((options0 = ({
             pathname: ("/v0/api/" + path)
         })), url.format(extend(CONF, options0))),
-        qs: (options || ({}))
+        qs: (options || ({})),
+        headers: ({
+            "accepts": "application/json"
+        })
     }));
 }));
 (Blotre.prototype.post = (function(path, body) {
@@ -103,6 +118,7 @@ var request = require("request"),
             pathname: ("/v0/api/" + path)
         })), url.format(extend(CONF, options))),
         headers: ({
+            "accepts": "application/json",
             "content-type": "application/json",
             "authorization": (self.creds ? ("Bearer " + self.creds.access_token) : "")
         }),
@@ -117,6 +133,7 @@ var request = require("request"),
             pathname: ("/v0/api/" + path)
         })), url.format(extend(CONF, options))),
         headers: ({
+            "accepts": "application/json",
             "content-type": "application/json",
             "authorization": (self.creds ? ("Bearer " + self.creds.access_token) : "")
         }),
@@ -129,7 +146,10 @@ var request = require("request"),
         method: "DELETE",
         uri: ((options = ({
             pathname: ("/v0/api/" + path)
-        })), url.format(extend(CONF, options)))
+        })), url.format(extend(CONF, options))),
+        headers: ({
+            "accepts": "application/json"
+        })
     }));
 }));
 (Blotre.prototype.getUser = (function(userId) {
@@ -184,15 +204,11 @@ var test = Blotre.create(({
     client_secret: "Y2JkNzY3ZWMtODVlZS00NjM5LWEyNmUtNzJkOGY2NjdjYTNl",
     redirect_uri: "http://localhost:50000"
 }), ({
-    access_token: "OWM5MGQ1YTYtMzJlNy00NWFhLTljNjgtM2ZhZTkzM2JmM2Nl"
+    access_token: "ODJhZDg0YjktN2ZiYy00ODMxLWIxNWMtZmYwMGJkODEwMWE1",
+    refresh_token: "OGFhZWI4ZTgtZDgxMi00NjA4LTlhZjYtMzI5MWRhMDgyY2Zm"
 }));
-console.log(test.getAuthorizationUrl());
-test.getUser("5550f2a63004a531be8820c5")
-    .then(console.log)["catch"](console.error);
 test.setStreamStatus("5550fcc9300496217de54ebf", ({
     color: "#f0000f"
 }))
-    .then(console.log)["catch"](console.error);
-test.getStream("5550fcc9300496217de54ebf")
     .then(console.log)["catch"](console.error);
 (module.exports = Blotre);

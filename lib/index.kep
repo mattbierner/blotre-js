@@ -23,6 +23,15 @@ var OAUTH2_ROOT := ROOT + "oauth2/";
 var getUrl := \options ->
     url.format <| extend(CONF, options);
 
+/**
+ * Determine if the request failed because the access token is expired.
+ */
+var isExpiredResponse := \response ->
+    response.statusCode === 401 && let
+        challenge = response.headers.('www-authenticate')
+    in
+        challenge && challenge.match('error="invalid_token"');
+
 /*
  ******************************************************************************/
 /**
@@ -103,14 +112,23 @@ Blotre.prototype.redeemOnetimeCode := \code =self->
 /* Requests
  ******************************************************************************/
 /**
+ * Make a request.
  * 
+ * If the request fails because the access token has expired, attempts to 
+ * exchange the refresh token for a new access token.
  */
-Blotre.prototype.makeRequest := \options =self->
+Blotre.prototype.makeRequest := \options noRetry =self->
     rp(options)
         .then(JSON.parse)
-        .catch \ e -> {
-            
-        };
+        .catch \ e ->
+            ?!noRetry && isExpiredResponse e.response && self.creds.refresh_token
+                // If we have a refresh_token, attempt to exchange it for new creds
+                // and replay the request.
+                :self.redeemRefreshToken(self.creds.refresh_token)
+                    .then(self.makeRequest @ options @ true)
+                
+                :e
+        ;
 
 /**
  * GET request.
@@ -119,7 +137,10 @@ Blotre.prototype.get := \path options =self->
     self.makeRequest {
         method: "GET",
         uri: getUrl { pathname: API_ROOT + path },
-        qs: options || {}
+        qs: options || {},
+        headers: {
+            'accepts': 'application/json'
+        }
     };
 
 /**
@@ -130,6 +151,7 @@ Blotre.prototype.post := \path body =self->
         method: "POST",
         uri: getUrl { pathname: API_ROOT + path },
         headers: {
+            'accepts': 'application/json',
             'content-type': 'application/json',
             'authorization': ?self.creds
                 :'Bearer ' + self.creds.access_token
@@ -146,6 +168,7 @@ Blotre.prototype.put := \path body =self->
         method: "PUT",
         uri: getUrl { pathname: API_ROOT + path },
         headers: {
+            'accepts': 'application/json',
             'content-type': 'application/json',
             'authorization': ?self.creds
                 :'Bearer ' + self.creds.access_token
@@ -160,7 +183,10 @@ Blotre.prototype.put := \path body =self->
 Blotre.prototype.del := \path  =self->
     self.makeRequest {
         method: "DELETE",
-        uri: getUrl { pathname: API_ROOT + path }
+        uri: getUrl { pathname: API_ROOT + path },
+        headers: {
+            'accepts': 'application/json'
+        }
     };
 
 /* User Operations
@@ -245,29 +271,28 @@ var test := Blotre.create @ {
     client_secret: 'Y2JkNzY3ZWMtODVlZS00NjM5LWEyNmUtNzJkOGY2NjdjYTNl',
     redirect_uri: "http://localhost:50000"
 } {
-    access_token: 'OWM5MGQ1YTYtMzJlNy00NWFhLTljNjgtM2ZhZTkzM2JmM2Nl'
+    access_token: 'ODJhZDg0YjktN2ZiYy00ODMxLWIxNWMtZmYwMGJkODEwMWE1',
+    refresh_token: 'OGFhZWI4ZTgtZDgxMi00NjA4LTlhZjYtMzI5MWRhMDgyY2Zm'
 };
 
-console.log <| test.getAuthorizationUrl();
-
-/*test.redeemAuthorizationCode('NTE5NTIxMDctOTkzNy00Mjc4LWE4NWEtM2MyYzMzNjUyNTA3')
+/*console.log <| test.getAuthorizationUrl();
+/*test.redeemAuthorizationCode('ZTdmMWMyYjAtYWNmZS00Y2FlLTg2YzAtMDUxZDc5NWYxYmI0')
     .then(console.log)
     .catch(console.error);
 */
+/*
 test.getUser("5550f2a63004a531be8820c5")
     .then(console.log)
     .catch(console.error);
-
-
-
+*/
 
 test.setStreamStatus('5550fcc9300496217de54ebf', { color: '#f0000f'})
     .then(console.log)
     .catch(console.error);
-
+/*
 test.getStream('5550fcc9300496217de54ebf')
     .then(console.log)
     .catch(console.error);
-
+*/
 }
 
