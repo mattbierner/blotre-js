@@ -42,7 +42,7 @@ var request = require("request"),
     }));
 }));
 (Blotre.prototype.acccessTokenEndpoint = (function(grantType, options) {
-    var options0, x, __o = this,
+    var options0, __o = this,
         client = __o["client"];
     return rp.post(({
         uri: ((options0 = ({
@@ -55,11 +55,8 @@ var request = require("request"),
             redirect_uri: client.redirect_uri
         }), (options || ({})))
     }))
-        .then(((x = JSON.parse), (function(z) {
-            var creds = x(z);
-            return new(Blotre)(client, creds);
-        })))["catch"]((function(x0) {
-            return x0.response.toJSON();
+        .then(JSON.parse)["catch"]((function(x) {
+            return x.response.toJSON();
         }));
 }));
 (Blotre.prototype.redeemAuthorizationCode = (function(code) {
@@ -80,21 +77,27 @@ var request = require("request"),
         code: code
     }));
 }));
+(Blotre.prototype.setAuthHeader = (function(options) {
+    var self = this;
+    return extend(options, ({
+        "headers": extend(options.headers, ({
+            "authorization": (self.creds ? ("Bearer " + self.creds.access_token) : "")
+        }))
+    }));
+}));
 (Blotre.prototype.makeRequest = (function(options, noRetry) {
     var self = this;
     return rp(options)
         .then(JSON.parse)["catch"]((function(e) {
-            var response, challenge, y;
+            var response, challenge;
             return ((((!noRetry) && ((response = e.response), ((response.statusCode === 401) && ((
                     challenge = response.headers["www-authenticate"]), (challenge &&
                     challenge.match("error=\"invalid_token\"")))))) && self.creds.refresh_token) ? self
                 .redeemRefreshToken(self.creds.refresh_token)
-                .then(((y = (function(newCreds) {
+                .then((function(newCreds) {
                     (self.creds = newCreds);
-                    return self.makeRequest(options, true);
-                })), (function(z) {
-                    return y(z.toJson);
-                }))) : e);
+                    return self.makeRequest(self.setAuthHeader(options), true);
+                })) : e);
         }));
 }));
 (Blotre.prototype.get = (function(path, options) {
@@ -112,33 +115,31 @@ var request = require("request"),
 }));
 (Blotre.prototype.post = (function(path, body) {
     var options, self = this;
-    return self.makeRequest(({
+    return self.makeRequest(self.setAuthHeader(({
         method: "POST",
         uri: ((options = ({
             pathname: ("/v0/api/" + path)
         })), url.format(extend(CONF, options))),
         headers: ({
             "accepts": "application/json",
-            "content-type": "application/json",
-            "authorization": (self.creds ? ("Bearer " + self.creds.access_token) : "")
+            "content-type": "application/json"
         }),
         body: JSON.stringify(body)
-    }));
+    })));
 }));
 (Blotre.prototype.put = (function(path, body) {
     var options, self = this;
-    return self.makeRequest(({
+    return self.makeRequest(self.setAuthHeader(({
         method: "PUT",
         uri: ((options = ({
             pathname: ("/v0/api/" + path)
         })), url.format(extend(CONF, options))),
         headers: ({
             "accepts": "application/json",
-            "content-type": "application/json",
-            "authorization": (self.creds ? ("Bearer " + self.creds.access_token) : "")
+            "content-type": "application/json"
         }),
         body: JSON.stringify(body)
-    }));
+    })));
 }));
 (Blotre.prototype.del = (function(path) {
     var options, self = this;
@@ -204,11 +205,13 @@ var test = Blotre.create(({
     client_secret: "Y2JkNzY3ZWMtODVlZS00NjM5LWEyNmUtNzJkOGY2NjdjYTNl",
     redirect_uri: "http://localhost:50000"
 }), ({
-    access_token: "ODJhZDg0YjktN2ZiYy00ODMxLWIxNWMtZmYwMGJkODEwMWE1",
-    refresh_token: "OGFhZWI4ZTgtZDgxMi00NjA4LTlhZjYtMzI5MWRhMDgyY2Zm"
+    access_token: "MmFlNzY2NjktZTFkOC00YWE3LTg0OTYtOWRmNzFkMzAxNTE0",
+    refresh_token: "ZTk3ZDEwMTQtMGE5Mi00YzhlLTkyYWEtZjc4YjRlOTM2NjYw"
 }));
 test.setStreamStatus("5550fcc9300496217de54ebf", ({
     color: "#f0000f"
 }))
-    .then(console.log)["catch"](console.error);
+    .then((function(x) {
+        return console.log("3232", x, test.creds);
+    }))["catch"](console.error);
 (module.exports = Blotre);

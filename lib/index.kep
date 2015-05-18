@@ -73,8 +73,7 @@ Blotre.prototype.acccessTokenEndpoint := \grantType options ={client}->
             redirect_uri: client.redirect_uri
         }, options || {})
     })
-    .then(JSON.parse \> \creds ->
-        new Blotre(client, creds))
+    .then(JSON.parse)
     .catch(.response.toJSON());
 
 /**
@@ -103,6 +102,15 @@ Blotre.prototype.redeemOnetimeCode := \code =self->
 
 /* Requests
  ******************************************************************************/
+Blotre.prototype.setAuthHeader := \options =self->
+    extend @ options {
+        'headers': extend @ options.headers {
+            'authorization': ?self.creds
+                :'Bearer ' + self.creds.access_token
+                :''
+        }
+    };
+
 /**
  * Make a request.
  * 
@@ -117,13 +125,12 @@ Blotre.prototype.makeRequest := \options noRetry =self->
                 // If we have a refresh_token, attempt to exchange it for new creds
                 // and replay the request.
                 :self.redeemRefreshToken(self.creds.refresh_token)
-                    .then(.toJson \> \newCreds -> {
+                    .then \ newCreds -> {
                         self.creds = newCreds;
-                        return self.makeRequest(options, true);
-                    })
+                        return self.makeRequest(self.setAuthHeader options, true);
+                    }
                 
-                :e
-        ;
+                :e;
 
 /**
  * GET request.
@@ -142,15 +149,12 @@ Blotre.prototype.get := \path options =self->
  * POST request.
  */
 Blotre.prototype.post := \path body =self->
-    self.makeRequest {
+    self.makeRequest <| self.setAuthHeader {
         method: "POST",
         uri: getUrl { pathname: API_ROOT + path },
         headers: {
             'accepts': 'application/json',
-            'content-type': 'application/json',
-            'authorization': ?self.creds
-                :'Bearer ' + self.creds.access_token
-                :''
+            'content-type': 'application/json'
         },
         body: JSON.stringify body
     };
@@ -159,15 +163,12 @@ Blotre.prototype.post := \path body =self->
  * PUT request.
  */
 Blotre.prototype.put := \path body =self->
-    self.makeRequest {
+    self.makeRequest <| self.setAuthHeader {
         method: "PUT",
         uri: getUrl { pathname: API_ROOT + path },
         headers: {
             'accepts': 'application/json',
-            'content-type': 'application/json',
-            'authorization': ?self.creds
-                :'Bearer ' + self.creds.access_token
-                :''
+            'content-type': 'application/json'
         },
         body: JSON.stringify body
     };
@@ -266,8 +267,8 @@ var test := Blotre.create @ {
     client_secret: 'Y2JkNzY3ZWMtODVlZS00NjM5LWEyNmUtNzJkOGY2NjdjYTNl',
     redirect_uri: "http://localhost:50000"
 } {
-    access_token: 'ODJhZDg0YjktN2ZiYy00ODMxLWIxNWMtZmYwMGJkODEwMWE1',
-    refresh_token: 'OGFhZWI4ZTgtZDgxMi00NjA4LTlhZjYtMzI5MWRhMDgyY2Zm'
+    access_token: 'MmFlNzY2NjktZTFkOC00YWE3LTg0OTYtOWRmNzFkMzAxNTE0',
+    refresh_token: 'ZTk3ZDEwMTQtMGE5Mi00YzhlLTkyYWEtZjc4YjRlOTM2NjYw'
 };
 
 /*console.log <| test.getAuthorizationUrl();
@@ -282,7 +283,7 @@ test.getUser("5550f2a63004a531be8820c5")
 */
 
 test.setStreamStatus('5550fcc9300496217de54ebf', { color: '#f0000f'})
-    .then(console.log)
+    .then(\x -> console.log('3232', x, test.creds))
     .catch(console.error);
 /*
 test.getStream('5550fcc9300496217de54ebf')
