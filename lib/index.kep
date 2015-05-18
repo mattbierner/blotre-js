@@ -44,14 +44,6 @@ Blotre := function\client creds =self-> {
 
 Blotre.create := \client creds -> new Blotre(client, creds);
 
-/**
- * Updates the raw creds used to talk to Blot're.
- * 
- * Does not perform any validation.
- */
-Blotre.prototype.setCreds := \creds ={client}->
-    new Blotre(client, creds);
-
 /* Authorization
  ******************************************************************************/
 /**
@@ -125,7 +117,10 @@ Blotre.prototype.makeRequest := \options noRetry =self->
                 // If we have a refresh_token, attempt to exchange it for new creds
                 // and replay the request.
                 :self.redeemRefreshToken(self.creds.refresh_token)
-                    .then(self.makeRequest @ options @ true)
+                    .then(.toJson \> \newCreds -> {
+                        self.creds = newCreds;
+                        return self.makeRequest(options, true);
+                    })
                 
                 :e
         ;

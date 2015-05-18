@@ -27,11 +27,6 @@ var request = require("request"),
 (Blotre.create = (function(client, creds) {
     return new(Blotre)(client, creds);
 }));
-(Blotre.prototype.setCreds = (function(creds) {
-    var __o = this,
-        client = __o["client"];
-    return new(Blotre)(client, creds);
-}));
 (Blotre.prototype.getAuthorizationUrl = (function() {
     var options, __o = this,
         client = __o["client"];
@@ -89,12 +84,17 @@ var request = require("request"),
     var self = this;
     return rp(options)
         .then(JSON.parse)["catch"]((function(e) {
-            var response, challenge;
+            var response, challenge, y;
             return ((((!noRetry) && ((response = e.response), ((response.statusCode === 401) && ((
                     challenge = response.headers["www-authenticate"]), (challenge &&
                     challenge.match("error=\"invalid_token\"")))))) && self.creds.refresh_token) ? self
                 .redeemRefreshToken(self.creds.refresh_token)
-                .then(self.makeRequest.bind(null, options, true)) : e);
+                .then(((y = (function(newCreds) {
+                    (self.creds = newCreds);
+                    return self.makeRequest(options, true);
+                })), (function(z) {
+                    return y(z.toJson);
+                }))) : e);
         }));
 }));
 (Blotre.prototype.get = (function(path, options) {
