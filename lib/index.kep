@@ -9,19 +9,17 @@ with
     import 'url' url
 in {
 
-static console;
-
-var CONF = {
-    protocol: 'http',//'https',
-    host: 'localhost:9000'//'blot.re'
+var DEFAULT_CONF = {
+    protocol: 'https',
+    host: 'blot.re'
 };
 
 var ROOT := "/v0/";
 var API_ROOT := ROOT + "api/";
 var OAUTH2_ROOT := ROOT + "oauth2/";
 
-var getUrl := \options ->
-    url.format <| extend(CONF, options);
+var getUrl := \conf options ->
+    url.format <| extend(conf, options);
 
 /**
  * Determine if the request failed because the access token is expired.
@@ -37,12 +35,15 @@ var isExpiredResponse := \response ->
 /**
  * Main Blot're state object.
  */
-Blotre := function\client creds =self-> {
+Blotre := function\client creds conf =self-> {
     self.client = (client || {});
     self.creds = (creds || {});
+    self.config = (conf || DEFAULT_CONF);
 };
 
-Blotre.create := \client creds -> new Blotre(client, creds);
+Blotre.create := \client creds conf -> new Blotre(client, creds, conf);
+
+Blotre.prototype.getUrl := \options ={config}-> getUrl(config, options);
 
 /* Authorization
  ******************************************************************************/
@@ -51,26 +52,26 @@ Blotre.create := \client creds -> new Blotre(client, creds);
  * 
  * When a user visits this API, 
  */
-Blotre.prototype.getAuthorizationUrl := \={client}->
+Blotre.prototype.getAuthorizationUrl := \=self->
     url.format {
-        pathname: getUrl { pathname: OAUTH2_ROOT + 'authorize' },
+        pathname: self.getUrl { pathname: OAUTH2_ROOT + 'authorize' },
         query: {
             response_type: 'code',
-            client_id: client.client_id,
-            redirect_uri: client.redirect_uri
+            client_id: self.client.client_id,
+            redirect_uri: self.client.redirect_uri
         }
     };
 
 /**
  */
-Blotre.prototype.acccessTokenEndpoint := \grantType options ={client}->
+Blotre.prototype.acccessTokenEndpoint := \grantType options =self->
     rp.post({
-        uri: getUrl { pathname: OAUTH2_ROOT + 'access_token' },
+        uri: self.getUrl { pathname: OAUTH2_ROOT + 'access_token' },
         qs: extend({
             grant_type: grantType,
-            client_id: client.client_id,
-            client_secret: client.client_secret,
-            redirect_uri: client.redirect_uri
+            client_id: self.client.client_id,
+            client_secret: self.client.client_secret,
+            redirect_uri: self.client.redirect_uri
         }, options || {})
     })
     .then(JSON.parse)
@@ -102,9 +103,9 @@ Blotre.prototype.redeemOnetimeCode := \code =self->
 
 /* Disposable Client
  ******************************************************************************/
-Blotre.createDisposable := \clientInfo ->
+Blotre.createDisposable := \clientInfo conf ->
     rp.put({
-        uri: getUrl { pathname: OAUTH2_ROOT + 'disposable' },
+        uri: getUrl(conf || DEFAULT_CONF, { pathname: OAUTH2_ROOT + 'disposable' }),
         body: JSON.stringify clientInfo,
         headers: {
             'accepts': 'application/json',
@@ -151,7 +152,7 @@ Blotre.prototype.makeRequest := \options noRetry =self->
 Blotre.prototype.get := \path options =self->
     self.makeRequest {
         method: "GET",
-        uri: getUrl { pathname: API_ROOT + path },
+        uri: self.getUrl { pathname: API_ROOT + path },
         qs: options || {},
         headers: {
             'accepts': 'application/json'
@@ -164,7 +165,7 @@ Blotre.prototype.get := \path options =self->
 Blotre.prototype.post := \path body =self->
     self.makeRequest <| self.setAuthHeader {
         method: "POST",
-        uri: getUrl { pathname: API_ROOT + path },
+        uri: self.getUrl { pathname: API_ROOT + path },
         headers: {
             'accepts': 'application/json',
             'content-type': 'application/json'
@@ -178,7 +179,7 @@ Blotre.prototype.post := \path body =self->
 Blotre.prototype.put := \path body =self->
     self.makeRequest <| self.setAuthHeader {
         method: "PUT",
-        uri: getUrl { pathname: API_ROOT + path },
+        uri: self.getUrl { pathname: API_ROOT + path },
         headers: {
             'accepts': 'application/json',
             'content-type': 'application/json'
@@ -192,7 +193,7 @@ Blotre.prototype.put := \path body =self->
 Blotre.prototype.del := \path  =self->
     self.makeRequest {
         method: "DELETE",
-        uri: getUrl { pathname: API_ROOT + path },
+        uri: self.getUrl { pathname: API_ROOT + path },
         headers: {
             'accepts': 'application/json'
         }

@@ -7,52 +7,57 @@ var request = require("request"),
     rp = require("request-promise"),
     extend = require("extend"),
     url = require("url"),
-    Blotre, CONF = ({
-        protocol: "http",
-        host: "localhost:9000"
+    Blotre, DEFAULT_CONF = ({
+        protocol: "https",
+        host: "blot.re"
     }),
-    getUrl = (function(options) {
-        return url.format(extend(CONF, options));
+    getUrl = (function(conf, options) {
+        return url.format(extend(conf, options));
     }),
     isExpiredResponse = (function(response) {
         var challenge;
         return ((response.statusCode === 401) && ((challenge = response.headers["www-authenticate"]), (challenge &&
             challenge.match("error=\"invalid_token\""))));
     });
-(Blotre = (function(client, creds) {
+(Blotre = (function(client, creds, conf) {
     var self = this;
     (self.client = (client || ({})));
     (self.creds = (creds || ({})));
+    (self.config = (conf || DEFAULT_CONF));
 }));
-(Blotre.create = (function(client, creds) {
-    return new(Blotre)(client, creds);
+(Blotre.create = (function(client, creds, conf) {
+    return new(Blotre)(client, creds, conf);
+}));
+(Blotre.prototype.getUrl = (function(options) {
+    var __o = this,
+        config = __o["config"],
+        conf = config;
+    return url.format(extend(conf, options));
 }));
 (Blotre.prototype.getAuthorizationUrl = (function() {
-    var options, __o = this,
-        client = __o["client"];
+    var self = this;
     return url.format(({
-        pathname: ((options = ({
+        pathname: self.getUrl(({
             pathname: "/v0/oauth2/authorize"
-        })), url.format(extend(CONF, options))),
+        })),
         query: ({
             response_type: "code",
-            client_id: client.client_id,
-            redirect_uri: client.redirect_uri
+            client_id: self.client.client_id,
+            redirect_uri: self.client.redirect_uri
         })
     }));
 }));
 (Blotre.prototype.acccessTokenEndpoint = (function(grantType, options) {
-    var options0, __o = this,
-        client = __o["client"];
+    var self = this;
     return rp.post(({
-        uri: ((options0 = ({
+        uri: self.getUrl(({
             pathname: "/v0/oauth2/access_token"
-        })), url.format(extend(CONF, options0))),
+        })),
         qs: extend(({
             grant_type: grantType,
-            client_id: client.client_id,
-            client_secret: client.client_secret,
-            redirect_uri: client.redirect_uri
+            client_id: self.client.client_id,
+            client_secret: self.client.client_secret,
+            redirect_uri: self.client.redirect_uri
         }), (options || ({})))
     }))
         .then(JSON.parse)["catch"]((function(x) {
@@ -77,12 +82,12 @@ var request = require("request"),
         code: code
     }));
 }));
-(Blotre.createDisposable = (function(clientInfo) {
-    var options;
+(Blotre.createDisposable = (function(clientInfo, conf) {
+    var conf0, options;
     return rp.put(({
-        uri: ((options = ({
+        uri: ((conf0 = (conf || DEFAULT_CONF)), (options = ({
             pathname: "/v0/oauth2/disposable"
-        })), url.format(extend(CONF, options))),
+        })), url.format(extend(conf0, options))),
         body: JSON.stringify(clientInfo),
         headers: ({
             "accepts": "application/json",
@@ -117,12 +122,12 @@ var request = require("request"),
         }));
 }));
 (Blotre.prototype.get = (function(path, options) {
-    var options0, self = this;
+    var self = this;
     return self.makeRequest(({
         method: "GET",
-        uri: ((options0 = ({
+        uri: self.getUrl(({
             pathname: ("/v0/api/" + path)
-        })), url.format(extend(CONF, options0))),
+        })),
         qs: (options || ({})),
         headers: ({
             "accepts": "application/json"
@@ -130,12 +135,12 @@ var request = require("request"),
     }));
 }));
 (Blotre.prototype.post = (function(path, body) {
-    var options, self = this;
+    var self = this;
     return self.makeRequest(self.setAuthHeader(({
         method: "POST",
-        uri: ((options = ({
+        uri: self.getUrl(({
             pathname: ("/v0/api/" + path)
-        })), url.format(extend(CONF, options))),
+        })),
         headers: ({
             "accepts": "application/json",
             "content-type": "application/json"
@@ -144,12 +149,12 @@ var request = require("request"),
     })));
 }));
 (Blotre.prototype.put = (function(path, body) {
-    var options, self = this;
+    var self = this;
     return self.makeRequest(self.setAuthHeader(({
         method: "PUT",
-        uri: ((options = ({
+        uri: self.getUrl(({
             pathname: ("/v0/api/" + path)
-        })), url.format(extend(CONF, options))),
+        })),
         headers: ({
             "accepts": "application/json",
             "content-type": "application/json"
@@ -158,12 +163,12 @@ var request = require("request"),
     })));
 }));
 (Blotre.prototype.del = (function(path) {
-    var options, self = this;
+    var self = this;
     return self.makeRequest(({
         method: "DELETE",
-        uri: ((options = ({
+        uri: self.getUrl(({
             pathname: ("/v0/api/" + path)
-        })), url.format(extend(CONF, options))),
+        })),
         headers: ({
             "accepts": "application/json"
         })
