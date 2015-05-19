@@ -1,6 +1,6 @@
 <div align="center">
     <a href="https://blot.re">
-        <img src="https://github.com/mattbierner/blotre/raw/master/documentation/readme-logo.png" width="280" alt="Blot're" />
+        <img src="https://github.com/mattbierner/blotre/raw/master/documentation/readme-logo.png" width="280px" alt="Blot're" />
     </a>
 </div>
 
@@ -9,10 +9,10 @@ Thin Javascript [Blot're][blotre] REST API wrapper.
 **Supports**
 * Unauthenticated queries.
 * Authorization flows.
-** Exchange authorization code for creds.
-** Disposable client creation and redemption.
+ * Exchange authorization code for creds.
+ * Disposable client creation and redemption.
 * Authorized requests.
-** Automatic exchanges refresh token if available.
+ * Automatic exchanges refresh token if available.
 
 ## Examples
 See the Blot're REST API documentation for more details on paramters
@@ -116,8 +116,10 @@ Blotre.createDisposable({
     .then(function(client) {
         // Now we have a client id and client secret.
         
-        // We still don't have creds but we not have an code that we can give to the user
-        console.log("Please visit https://blot.re/v0/oauth2/redeem/ and enter: ", client.client.code)
+        // We still don't have creds but we have an code that we can give to the user
+        console.log(
+            "Please visit https://blot.re/v0/oauth2/redeem/ and enter: ",
+            client.client.code)
     });
 
 // Later, after the user has authorized, exchange our client creds and the code
