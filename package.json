@@ -1,12 +1,21 @@
 {
-    "name": "xxx",
+    "name": "blotre",
     "version": "0.0.0",
-    "description": "",
+    "description": "Basic Blot're client.",
     "author": "Matt Bierner",
     "license": "MIT",
-    "keywords": [],
-
-    "main": "index.js",
+    "homepage": "https://blot.re",
+     "repository": {
+        "type": "git",
+        "url": "https://github.com/mattbierner/blotre-client.git"
+    },
+    "keywords": [
+        "Blot're",
+        "Blotre",
+        "client",
+        "oauth2"],
+    
+    "main": "dist/index.js",
     
     "dependencies": {
         "request": "2.55.x",

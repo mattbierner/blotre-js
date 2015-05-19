@@ -77,6 +77,22 @@ var request = require("request"),
         code: code
     }));
 }));
+(Blotre.createDisposable = (function(clientInfo) {
+    var options;
+    return rp.put(({
+        uri: ((options = ({
+            pathname: "/v0/oauth2/disposable"
+        })), url.format(extend(CONF, options))),
+        body: JSON.stringify(clientInfo),
+        headers: ({
+            "accepts": "application/json",
+            "content-type": "application/json"
+        })
+    }))
+        .then((function(y) {
+            return new(Blotre)(y);
+        }));
+}));
 (Blotre.prototype.setAuthHeader = (function(options) {
     var self = this;
     return extend(options, ({
@@ -197,21 +213,4 @@ var request = require("request"),
     var self = this;
     return self.del(((("stream/" + streamId) + "/children/") + childId));
 }));
-(Blotre.createTemp = (function() {
-    return null;
-}));
-var test = Blotre.create(({
-    client_id: "5558ef1330042320bd1ff8b2",
-    client_secret: "Y2JkNzY3ZWMtODVlZS00NjM5LWEyNmUtNzJkOGY2NjdjYTNl",
-    redirect_uri: "http://localhost:50000"
-}), ({
-    access_token: "MmFlNzY2NjktZTFkOC00YWE3LTg0OTYtOWRmNzFkMzAxNTE0",
-    refresh_token: "ZTk3ZDEwMTQtMGE5Mi00YzhlLTkyYWEtZjc4YjRlOTM2NjYw"
-}));
-test.setStreamStatus("5550fcc9300496217de54ebf", ({
-    color: "#f0000f"
-}))
-    .then((function(x) {
-        return console.log("3232", x, test.creds);
-    }))["catch"](console.error);
 (module.exports = Blotre);

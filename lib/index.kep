@@ -100,6 +100,19 @@ Blotre.prototype.redeemRefreshToken := \token =self->
 Blotre.prototype.redeemOnetimeCode := \code =self->
     self.acccessTokenEndpoint @ 'https://oauth2grant.blot.re/onetime_code' { code: code };
 
+/* Disposable Client
+ ******************************************************************************/
+Blotre.createDisposable := \clientInfo ->
+    rp.put({
+        uri: getUrl { pathname: OAUTH2_ROOT + 'disposable' },
+        body: JSON.stringify clientInfo,
+        headers: {
+            'accepts': 'application/json',
+            'content-type': 'application/json'
+        }
+    })
+    .then((new)@Blotre);
+
 /* Requests
  ******************************************************************************/
 Blotre.prototype.setAuthHeader := \options =self->
@@ -255,40 +268,5 @@ Blotre.prototype.createChild := \streamId childId =self->
 Blotre.prototype.deleteChild := \streamId childId =self->
     self.del('stream/' + streamId + '/children/' + childId);
 
-/* Stream Operations
- ******************************************************************************/
-/**
- * 
- */
-Blotre.createTemp := \ -> null;
-
-var test := Blotre.create @ {
-    client_id: '5558ef1330042320bd1ff8b2',
-    client_secret: 'Y2JkNzY3ZWMtODVlZS00NjM5LWEyNmUtNzJkOGY2NjdjYTNl',
-    redirect_uri: "http://localhost:50000"
-} {
-    access_token: 'MmFlNzY2NjktZTFkOC00YWE3LTg0OTYtOWRmNzFkMzAxNTE0',
-    refresh_token: 'ZTk3ZDEwMTQtMGE5Mi00YzhlLTkyYWEtZjc4YjRlOTM2NjYw'
-};
-
-/*console.log <| test.getAuthorizationUrl();
-/*test.redeemAuthorizationCode('ZTdmMWMyYjAtYWNmZS00Y2FlLTg2YzAtMDUxZDc5NWYxYmI0')
-    .then(console.log)
-    .catch(console.error);
-*/
-/*
-test.getUser("5550f2a63004a531be8820c5")
-    .then(console.log)
-    .catch(console.error);
-*/
-
-test.setStreamStatus('5550fcc9300496217de54ebf', { color: '#f0000f'})
-    .then(\x -> console.log('3232', x, test.creds))
-    .catch(console.error);
-/*
-test.getStream('5550fcc9300496217de54ebf')
-    .then(console.log)
-    .catch(console.error);
-*/
 }
 
