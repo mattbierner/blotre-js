@@ -7,7 +7,7 @@
     "homepage": "https://blot.re",
      "repository": {
         "type": "git",
-        "url": "https://github.com/mattbierner/blotre-client.git"
+        "url": "https://github.com/mattbierner/blotre-js.git"
     },
     "keywords": [
         "Blot're",
