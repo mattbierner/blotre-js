@@ -3,11 +3,13 @@
  * DO NOT EDIT
 */
 "use strict";
-var request = require("request"),
-    rp = require("request-promise"),
+var rp = require("request-promise"),
     extend = require("extend"),
     url = require("url"),
-    Blotre, DEFAULT_CONF = ({
+    Blotre, __o = JSON,
+    stringify = __o["stringify"],
+    parse = __o["parse"],
+    DEFAULT_CONF = ({
         protocol: "https",
         host: "blot.re"
     }),
@@ -16,8 +18,8 @@ var request = require("request"),
     }),
     isExpiredResponse = (function(response) {
         var challenge;
-        return ((response.statusCode === 401) && ((challenge = response.headers["www-authenticate"]), (challenge &&
-            challenge.match("error=\"invalid_token\""))));
+        return (((response && response.statusCode) === 401) && ((challenge = response.headers["www-authenticate"]), (
+            challenge && challenge.match("error=\"invalid_token\""))));
     });
 (Blotre = (function(client, creds, conf) {
     var self = this;
@@ -29,10 +31,18 @@ var request = require("request"),
     return new(Blotre)(client, creds, conf);
 }));
 (Blotre.prototype.getUrl = (function(options) {
-    var __o = this,
-        config = __o["config"],
-        conf = config;
+    var __o0 = this,
+        config = __o0["config"],
+        conf = ({
+            protocol: config.protocol,
+            host: config.host
+        });
     return url.format(extend(conf, options));
+}));
+(Blotre.prototype.setCreds = (function(creds) {
+    var self = this;
+    (self.creds = creds);
+    if (self.config.onCredsChanged) self.config.onCredsChanged(self);
 }));
 (Blotre.prototype.getAuthorizationUrl = (function() {
     var self = this;
@@ -60,26 +70,26 @@ var request = require("request"),
             redirect_uri: self.client.redirect_uri
         }), (options || ({})))
     }))
-        .then(JSON.parse)["catch"]((function(x) {
+        .then(parse)["catch"]((function(x) {
             return x.response.toJSON();
         }));
 }));
 (Blotre.prototype.redeemAuthorizationCode = (function(code) {
     var self = this;
     return self.acccessTokenEndpoint("authorization_code", ({
-        code: code
+        code: (code || self.creds.code)
     }));
 }));
 (Blotre.prototype.redeemRefreshToken = (function(token) {
     var self = this;
     return self.acccessTokenEndpoint("refresh_token", ({
-        refresh_token: token
+        refresh_token: (token || self.creds.refresh_token)
     }));
 }));
 (Blotre.prototype.redeemOnetimeCode = (function(code) {
     var self = this;
     return self.acccessTokenEndpoint("https://oauth2grant.blot.re/onetime_code", ({
-        code: code
+        code: (code || self.creds.code)
     }));
 }));
 (Blotre.createDisposable = (function(clientInfo, conf) {
@@ -88,14 +98,19 @@ var request = require("request"),
         uri: ((conf0 = (conf || DEFAULT_CONF)), (options = ({
             pathname: "/v0/oauth2/disposable"
         })), url.format(extend(conf0, options))),
-        body: JSON.stringify(clientInfo),
+        body: stringify(clientInfo),
         headers: ({
             "accepts": "application/json",
             "content-type": "application/json"
         })
     }))
-        .then((function(y) {
-            return new(Blotre)(y);
+        .then((function(z) {
+            var data = parse(z);
+            return new(Blotre)(({
+                client_id: data.id,
+                client_secret: data.secret,
+                code: data.code
+            }), null, conf);
         }));
 }));
 (Blotre.prototype.setAuthHeader = (function(options) {
@@ -109,14 +124,14 @@ var request = require("request"),
 (Blotre.prototype.makeRequest = (function(options, noRetry) {
     var self = this;
     return rp(options)
-        .then(JSON.parse)["catch"]((function(e) {
+        .then(parse)["catch"]((function(e) {
             var response, challenge;
-            return ((((!noRetry) && ((response = e.response), ((response.statusCode === 401) && ((
-                    challenge = response.headers["www-authenticate"]), (challenge &&
-                    challenge.match("error=\"invalid_token\"")))))) && self.creds.refresh_token) ? self
-                .redeemRefreshToken(self.creds.refresh_token)
+            return ((((!noRetry) && ((response = e.response), (((response && response.statusCode) ===
+                    401) && ((challenge = response.headers["www-authenticate"]), (
+                    challenge && challenge.match("error=\"invalid_token\"")))))) && self.creds.refresh_token) ?
+                self.redeemRefreshToken()
                 .then((function(newCreds) {
-                    (self.creds = newCreds);
+                    self.setCreds(newCreds);
                     return self.makeRequest(self.setAuthHeader(options), true);
                 })) : e);
         }));
@@ -145,7 +160,7 @@ var request = require("request"),
             "accepts": "application/json",
             "content-type": "application/json"
         }),
-        body: JSON.stringify(body)
+        body: stringify(body)
     })));
 }));
 (Blotre.prototype.put = (function(path, body) {
@@ -159,7 +174,7 @@ var request = require("request"),
             "accepts": "application/json",
             "content-type": "application/json"
         }),
-        body: JSON.stringify(body)
+        body: stringify(body)
     })));
 }));
 (Blotre.prototype.del = (function(path) {

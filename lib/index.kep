@@ -1,12 +1,9 @@
-/**
- * 
- */
 package Blotre
 with
-    import 'request' request,
     import 'request-promise' rp,
     import 'extend' extend,
-    import 'url' url
+    import 'url' url,
+    {stringify parse} = JSON
 in {
 
 var DEFAULT_CONF = {
@@ -25,7 +22,7 @@ var getUrl := \conf options ->
  * Determine if the request failed because the access token is expired.
  */
 var isExpiredResponse := \response ->
-    response.statusCode === 401 && let
+    response??.statusCode === 401 && let
         challenge = response.headers.('www-authenticate')
     in
         challenge && challenge.match('error="invalid_token"');
@@ -43,14 +40,22 @@ Blotre := function\client creds conf =self-> {
 
 Blotre.create := \client creds conf -> new Blotre(client, creds, conf);
 
-Blotre.prototype.getUrl := \options ={config}-> getUrl(config, options);
+Blotre.prototype.getUrl := \options ={config}->
+    getUrl({
+        protocol: config.protocol,
+        host: config.host
+    }, options);
+
+Blotre.prototype.setCreds := \creds =self-> {
+    self.creds = creds;
+    if (self.config.onCredsChanged)
+        self.config.onCredsChanged(self);
+};
 
 /* Authorization
  ******************************************************************************/
 /**
  * Get the authorization URI for the current client.
- * 
- * When a user visits this API, 
  */
 Blotre.prototype.getAuthorizationUrl := \=self->
     url.format {
@@ -63,6 +68,7 @@ Blotre.prototype.getAuthorizationUrl := \=self->
     };
 
 /**
+ * Attempt to exchange creds for an access token.
  */
 Blotre.prototype.acccessTokenEndpoint := \grantType options =self->
     rp.post({
@@ -74,45 +80,58 @@ Blotre.prototype.acccessTokenEndpoint := \grantType options =self->
             redirect_uri: self.client.redirect_uri
         }, options || {})
     })
-    .then(JSON.parse)
+    .then(parse)
     .catch(.response.toJSON());
 
 /**
- * Exchange an authorization code for client credentials.
+ * Exchange an authorization code for a new access token.
  * 
  * If successful, returns a new Client that uses these credentials.
  */
 Blotre.prototype.redeemAuthorizationCode := \code =self->
-    self.acccessTokenEndpoint @ 'authorization_code' { code: code };
+    self.acccessTokenEndpoint @ 'authorization_code' {
+        code: (code || self.creds.code)
+    };
 
 /**
- * Attempt to exchange a refresh token for new creds.
+ * Attempt to exchange a refresh token for a new access token.
  * 
  * If successful, returns a new Client that uses these credentials.
  */
 Blotre.prototype.redeemRefreshToken := \token =self->
-    self.acccessTokenEndpoint @ 'refresh_token' { refresh_token: token };
+    self.acccessTokenEndpoint @ 'refresh_token' {
+        refresh_token: (token || self.creds.refresh_token)
+    };
 
 /**
- * Attempt to exchange one time code for creds.
+ * Attempt to exchange one time code for a new access token.
  * 
  * If successful, returns a new Client that uses these credentials.
  */
 Blotre.prototype.redeemOnetimeCode := \code =self->
-    self.acccessTokenEndpoint @ 'https://oauth2grant.blot.re/onetime_code' { code: code };
+    self.acccessTokenEndpoint @ 'https://oauth2grant.blot.re/onetime_code' {
+        code: (code || self.creds.code)
+    };
 
 /* Disposable Client
  ******************************************************************************/
+/**
+ * Create a new disposable client.
+ */
 Blotre.createDisposable := \clientInfo conf ->
     rp.put({
         uri: getUrl(conf || DEFAULT_CONF, { pathname: OAUTH2_ROOT + 'disposable' }),
-        body: JSON.stringify clientInfo,
+        body: stringify clientInfo,
         headers: {
             'accepts': 'application/json',
             'content-type': 'application/json'
         }
     })
-    .then((new)@Blotre);
+    .then(parse \> \data -> new Blotre({
+        client_id: data.id,
+        client_secret: data.secret,
+        code: data.code
+    }, null, conf));
 
 /* Requests
  ******************************************************************************/
@@ -133,14 +152,14 @@ Blotre.prototype.setAuthHeader := \options =self->
  */
 Blotre.prototype.makeRequest := \options noRetry =self->
     rp(options)
-        .then(JSON.parse)
+        .then(parse)
         .catch \ e ->
             ?!noRetry && isExpiredResponse e.response && self.creds.refresh_token
                 // If we have a refresh_token, attempt to exchange it for new creds
                 // and replay the request.
-                :self.redeemRefreshToken(self.creds.refresh_token)
+                :self.redeemRefreshToken()
                     .then \ newCreds -> {
-                        self.creds = newCreds;
+                        self.setCreds(newCreds);
                         return self.makeRequest(self.setAuthHeader options, true);
                     }
                 
@@ -170,7 +189,7 @@ Blotre.prototype.post := \path body =self->
             'accepts': 'application/json',
             'content-type': 'application/json'
         },
-        body: JSON.stringify body
+        body: stringify body
     };
 
 /**
@@ -184,7 +203,7 @@ Blotre.prototype.put := \path body =self->
             'accepts': 'application/json',
             'content-type': 'application/json'
         },
-        body: JSON.stringify body
+        body: stringify body
     };
 
 /**
@@ -270,4 +289,3 @@ Blotre.prototype.deleteChild := \streamId childId =self->
     self.del('stream/' + streamId + '/children/' + childId);
 
 }
-
