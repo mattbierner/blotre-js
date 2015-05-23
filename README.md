@@ -91,7 +91,7 @@ var client = Blotre.create({
 client.getAuthorizationUrl(); // https://blot.re/v0/oauth2/authorize?response_type=code&client_id=5558ef1330042320bd1ff8b2&redirect_uri=http%3A%2F%2Flocalhost%3A50000
 
 // The user has visited the link now and our server gets the authorization code.
-// Exchange if for a set of creds.
+// Exchange it for a set of creds.
 client.redeemAuthorizationCode('ZTdmMWMyYjAtYWNmZS00Y2FlLTg2YzAtMDUxZDc5NWYxYmI0')
     .then(console.log)
     .catch(console.error);
@@ -99,7 +99,7 @@ client.redeemAuthorizationCode('ZTdmMWMyYjAtYWNmZS00Y2FlLTg2YzAtMDUxZDc5NWYxYmI0
 // This only gets the creds, to start using them you must update the client
 client.redeemAuthorizationCode('ZTdmMWMyYjAtYWNmZS00Y2FlLTg2YzAtMDUxZDc5NWYxYmI0')
     .then(function(newCreds) {
-        client.creds = newCreds;
+        client.setCreds(newCreds);
     })
     .catch(console.error);
 ```
