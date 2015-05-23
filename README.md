@@ -128,7 +128,7 @@ Blotre.createDisposable({
 // for a token
 client.redeemOnetimeCode('CVOrybcK')
     .then(function(newCreds) {
-        client.creds = newCreds;
+        client.setCreds(newCreds);
     })
     .catch(console.error);
 ```
