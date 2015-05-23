@@ -15,7 +15,9 @@ Thin Javascript [Blot're][blotre] REST API wrapper.
  * Automatic exchanges refresh token if available.
 
 ## Examples
-See the Blot're REST API documentation for more details on paramters
+Checkout the full [documentation][documentation]
+
+See the [Blot're REST API documentation][blotre-rest] for more details on parameters.
 
 #### Basic Queries
 All requests return [Bluebird promises][bluebird].
@@ -137,5 +139,7 @@ client.redeemOnetimeCode('CVOrybcK')
 [blotre-register]: https://github.com/mattbierner/blotre/wiki/registering-a-client
 [blotre-rest]: https://github.com/mattbierner/blotre/wiki/REST
 [blotre-disposable]: https://github.com/mattbierner/blotre/wiki/single-use-clients
+
+[documentation]: https://github.com/mattbierner/blotre-js/wiki
 
 [bluebird]: https://github.com/petkaantonov/bluebird
