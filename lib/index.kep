@@ -119,6 +119,11 @@ Blotre.prototype.redeemOnetimeCode := \code =self->
 
 /* Disposable Client
  ******************************************************************************/
+var JSON_HEADER = {
+    'accepts': 'application/json',
+    'content-type': 'application/json'
+};
+    
 /**
  * Create a new disposable client.
  */
@@ -126,10 +131,7 @@ Blotre.createDisposable := \clientInfo conf ->
     rp.put({
         uri: getUrl(extend(DEFAULT_CONF, conf || {}), { pathname: OAUTH2_ROOT + 'disposable' }),
         body: stringify clientInfo,
-        headers: {
-            'accepts': 'application/json',
-            'content-type': 'application/json'
-        }
+        headers: JSON_HEADER
     })
     .then(parse \> \data -> new Blotre({
         client_id: data.id,
@@ -179,9 +181,7 @@ Blotre.prototype.get := \path options =self->
         method: "GET",
         uri: self.getUrl { pathname: API_ROOT + path },
         qs: options || {},
-        headers: {
-            'accepts': 'application/json'
-        }
+        headers: JSON_HEADER
     };
 
 /**
@@ -191,10 +191,7 @@ Blotre.prototype.post := \path body =self->
     self.makeRequest <| self.setAuthHeader {
         method: "POST",
         uri: self.getUrl { pathname: API_ROOT + path },
-        headers: {
-            'accepts': 'application/json',
-            'content-type': 'application/json'
-        },
+        headers: JSON_HEADER,
         body: stringify body
     };
 
@@ -205,23 +202,18 @@ Blotre.prototype.put := \path body =self->
     self.makeRequest <| self.setAuthHeader {
         method: "PUT",
         uri: self.getUrl { pathname: API_ROOT + path },
-        headers: {
-            'accepts': 'application/json',
-            'content-type': 'application/json'
-        },
+        headers: JSON_HEADER,
         body: stringify body
     };
 
 /**
  * DELETE request.
  */
-Blotre.prototype.del := \path  =self->
-    self.makeRequest {
+Blotre.prototype.del := \path =self->
+    self.makeRequest <| self.setAuthHeader {
         method: "DELETE",
         uri: self.getUrl { pathname: API_ROOT + path },
-        headers: {
-            'accepts': 'application/json'
-        }
+        headers: JSON_HEADER
     };
 
 /* User Operations

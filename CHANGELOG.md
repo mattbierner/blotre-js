@@ -1,5 +1,8 @@
 # ChangeLog #
 
+## 0.1.2 - May 23, 2015
+* Send auth headers on delete requests.
+
 ## 0.1.1 - May 19, 2015
 * Use extend for config so only override paramters have to be provided.
 * Correctly rethrow and extract exceptions.

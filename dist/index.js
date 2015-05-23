@@ -12,14 +12,6 @@ var rp = require("request-promise"),
     DEFAULT_CONF = ({
         protocol: "https",
         host: "blot.re"
-    }),
-    getUrl = (function(conf, options) {
-        return url.format(extend(conf, options));
-    }),
-    isExpiredResponse = (function(response) {
-        var challenge;
-        return (((response && response.statusCode) === 401) && ((challenge = response.headers["www-authenticate"]), (
-            challenge && challenge.match("error=\"invalid_token\""))));
     });
 (Blotre = (function(client, creds, conf) {
     var self = this;
@@ -94,6 +86,10 @@ var rp = require("request-promise"),
         code: (code || self.client.code)
     }));
 }));
+var JSON_HEADER = ({
+    "accepts": "application/json",
+    "content-type": "application/json"
+});
 (Blotre.createDisposable = (function(clientInfo, conf) {
     var conf0, options;
     return rp.put(({
@@ -101,10 +97,7 @@ var rp = require("request-promise"),
             pathname: "/v0/oauth2/disposable"
         })), url.format(extend(conf0, options))),
         body: stringify(clientInfo),
-        headers: ({
-            "accepts": "application/json",
-            "content-type": "application/json"
-        })
+        headers: JSON_HEADER
     }))
         .then((function(z) {
             var data = parse(z);
@@ -149,9 +142,7 @@ var rp = require("request-promise"),
             pathname: ("/v0/api/" + path)
         })),
         qs: (options || ({})),
-        headers: ({
-            "accepts": "application/json"
-        })
+        headers: JSON_HEADER
     }));
 }));
 (Blotre.prototype.post = (function(path, body) {
@@ -161,10 +152,7 @@ var rp = require("request-promise"),
         uri: self.getUrl(({
             pathname: ("/v0/api/" + path)
         })),
-        headers: ({
-            "accepts": "application/json",
-            "content-type": "application/json"
-        }),
+        headers: JSON_HEADER,
         body: stringify(body)
     })));
 }));
@@ -175,24 +163,19 @@ var rp = require("request-promise"),
         uri: self.getUrl(({
             pathname: ("/v0/api/" + path)
         })),
-        headers: ({
-            "accepts": "application/json",
-            "content-type": "application/json"
-        }),
+        headers: JSON_HEADER,
         body: stringify(body)
     })));
 }));
 (Blotre.prototype.del = (function(path) {
     var self = this;
-    return self.makeRequest(({
+    return self.makeRequest(self.setAuthHeader(({
         method: "DELETE",
         uri: self.getUrl(({
             pathname: ("/v0/api/" + path)
         })),
-        headers: ({
-            "accepts": "application/json"
-        })
-    }));
+        headers: JSON_HEADER
+    })));
 }));
 (Blotre.prototype.getUser = (function(userId) {
     var self = this;
