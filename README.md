@@ -88,7 +88,7 @@ var client = Blotre.create({
 });
 
 // Get the link that the user should visit for authorization.
-test.getAuthorizationUrl(); // https://blot.re/v0/oauth2/authorize?response_type=code&client_id=5558ef1330042320bd1ff8b2&redirect_uri=http%3A%2F%2Flocalhost%3A50000
+client.getAuthorizationUrl(); // https://blot.re/v0/oauth2/authorize?response_type=code&client_id=5558ef1330042320bd1ff8b2&redirect_uri=http%3A%2F%2Flocalhost%3A50000
 
 // The user has visited the link now and our server gets the authorization code.
 // Exchange if for a set of creds.
