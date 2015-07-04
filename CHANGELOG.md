@@ -1,5 +1,8 @@
 # ChangeLog #
 
+## 0.2.0 - July 4, 2015
+* Support for Blot're 0.1.0.
+
 ## 0.1.2 - May 23, 2015
 * Send auth headers on delete requests.
 

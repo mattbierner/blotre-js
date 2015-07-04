@@ -55,7 +55,8 @@ var rp = require("request-promise"),
         uri: self.getUrl(({
             pathname: "/v0/oauth2/access_token"
         })),
-        qs: extend(({
+        "content-type": "application/x-www-form-urlencoded",
+        form: extend(({
             grant_type: grantType,
             client_id: self.client.client_id,
             client_secret: self.client.client_secret,

@@ -65,7 +65,7 @@ var client = Blotre.create({
 
 // Make a request that requires authorization.
 //
-// If the access token is expires, this automatically attempts to exchange the
+// If the access token is expired, automatically attempts to exchange the
 // refresh token for a new access token.
 client.setStreamStatus('5550fcc9300496217de54ebf', { color: '#f0000f' })
     .then(console.log)
