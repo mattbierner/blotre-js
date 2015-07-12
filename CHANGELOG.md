@@ -1,5 +1,10 @@
 # ChangeLog #
 
+## 0.3.0 - July 12, 2015
+* Added `normalizeUri` to convert a uri into its normalized form.
+* Added `getWebsocketUrl` to get the url for the websocket apis.
+* Added `getRedeemUrl` to get the path where users can redeem onetime codes.
+
 ## 0.2.0 - July 4, 2015
 * Support for Blot're 0.1.0.
 

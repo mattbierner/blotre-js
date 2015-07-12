@@ -22,6 +22,11 @@ var rp = require("request-promise"),
 (Blotre.create = (function(client, creds, conf) {
     return new(Blotre)(client, creds, conf);
 }));
+(Blotre.prototype.normalizeUri = (function(uri) {
+    return encodeURI(uri.trim()
+        .toLowerCase());
+}));
+(Blotre.normalizeUri = Blotre.prototype.normalizeUri);
 (Blotre.prototype.getUrl = (function(options) {
     var __o0 = this,
         config = __o0["config"],
@@ -36,6 +41,11 @@ var rp = require("request-promise"),
     (self.creds = creds);
     if (self.config.onCredsChanged) self.config.onCredsChanged(self);
 }));
+(Blotre.prototype.getWebsocketUrl = (function() {
+    var __o0 = this,
+        config = __o0["config"];
+    return (((((config.protocol === "http") ? "ws" : "wss") + "://") + config.host) + "/v0/ws");
+}));
 (Blotre.prototype.getAuthorizationUrl = (function() {
     var self = this;
     return url.format(({
@@ -47,6 +57,14 @@ var rp = require("request-promise"),
             client_id: self.client.client_id,
             redirect_uri: self.client.redirect_uri
         })
+    }));
+}));
+(Blotre.prototype.getRedeemUrl = (function() {
+    var self = this;
+    return url.format(({
+        pathname: self.getUrl(({
+            pathname: "/v0/oauth2/redeem"
+        }))
     }));
 }));
 (Blotre.prototype.acccessTokenEndpoint = (function(grantType, options) {

@@ -40,6 +40,12 @@ Blotre := function\client creds conf =self-> {
 
 Blotre.create := \client creds conf -> new Blotre(client, creds, conf);
 
+/**
+ * Convert a stream path into it's normalized form.
+ */
+Blotre.normalizeUri := Blotre.prototype.normalizeUri := \uri ->
+    encodeURI(uri.trim().toLowerCase());
+
 Blotre.prototype.getUrl := \options ={config}->
     getUrl({
         protocol: config.protocol,
@@ -52,10 +58,16 @@ Blotre.prototype.setCreds := \creds =self-> {
         self.config.onCredsChanged(self);
 };
 
+/**
+ * Get the url for using the websocked APIs, both subscription and send/receive.
+ */
+Blotre.prototype.getWebsocketUrl := \={config} ->
+    (?config.protocol === 'http' : 'ws' : 'wss') + '://' + config.host + '/v0/ws';
+
 /* Authorization
  ******************************************************************************/
 /**
- * Get the authorization URI for the current client.
+ * Get the authorization Url for the current client.
  */
 Blotre.prototype.getAuthorizationUrl := \=self->
     url.format {
@@ -65,6 +77,14 @@ Blotre.prototype.getAuthorizationUrl := \=self->
             client_id: self.client.client_id,
             redirect_uri: self.client.redirect_uri
         }
+    };
+
+/**
+ * Get the Url where a user can redeem a onetime code for a disposable client.
+ */
+Blotre.prototype.getRedeemUrl := \=self->
+    url.format {
+        pathname: self.getUrl { pathname: OAUTH2_ROOT + 'redeem' }
     };
 
 /**
