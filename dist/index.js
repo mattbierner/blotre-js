@@ -27,6 +27,11 @@ var rp = require("request-promise"),
         .toLowerCase());
 }));
 (Blotre.normalizeUri = Blotre.prototype.normalizeUri);
+(Blotre.prototype.joinUri = (function() {
+    var segments = arguments;
+    return Blotre.normalizeUri(Array.prototype.join.call(segments, "/"));
+}));
+(Blotre.joinUri = Blotre.prototype.joinUri);
 (Blotre.prototype.getUrl = (function(options) {
     var __o0 = this,
         config = __o0["config"],
@@ -40,6 +45,7 @@ var rp = require("request-promise"),
     var self = this;
     (self.creds = creds);
     if (self.config.onCredsChanged) self.config.onCredsChanged(self);
+    return self;
 }));
 (Blotre.prototype.getWebsocketUrl = (function() {
     var __o0 = this,
@@ -145,8 +151,8 @@ var JSON_HEADER = ({
                     challenge.match("error=\"invalid_token\"")))))) && self.creds.refresh_token)) {
                 return self.redeemRefreshToken()
                     .then((function(newCreds) {
-                        self.setCreds(newCreds);
-                        return self.makeRequest(self.setAuthHeader(options), true);
+                        return self.setCreds(newCreds)
+                            .makeRequest(self.setAuthHeader(options), true);
                     }));
             } else {
                 throw e;
@@ -155,14 +161,14 @@ var JSON_HEADER = ({
 }));
 (Blotre.prototype.get = (function(path, options) {
     var self = this;
-    return self.makeRequest(({
+    return self.makeRequest(self.setAuthHeader(({
         method: "GET",
         uri: self.getUrl(({
             pathname: ("/v0/api/" + path)
         })),
         qs: (options || ({})),
         headers: JSON_HEADER
-    }));
+    })));
 }));
 (Blotre.prototype.post = (function(path, body) {
     var self = this;
@@ -200,6 +206,10 @@ var JSON_HEADER = ({
     var self = this;
     return self.get(("user/" + userId));
 }));
+(Blotre.prototype.getStream = (function(id, options) {
+    var self = this;
+    return self.get(("stream/" + id), options);
+}));
 (Blotre.prototype.getStreams = (function(options) {
     var self = this;
     return self.get("stream", options);
@@ -207,10 +217,6 @@ var JSON_HEADER = ({
 (Blotre.prototype.createStream = (function(body) {
     var self = this;
     return self.put("stream", body);
-}));
-(Blotre.prototype.getStream = (function(id, options) {
-    var self = this;
-    return self.get(("stream/" + id), options);
 }));
 (Blotre.prototype.deleteStream = (function(id) {
     var self = this;
@@ -239,5 +245,25 @@ var JSON_HEADER = ({
 (Blotre.prototype.deleteChild = (function(streamId, childId) {
     var self = this;
     return self.del(((("stream/" + streamId) + "/children/") + childId));
+}));
+(Blotre.prototype.getTags = (function(streamId) {
+    var self = this;
+    return self.get((("stream/" + streamId) + "/tags"));
+}));
+(Blotre.prototype.setTags = (function(streamId, tags) {
+    var self = this;
+    return self.post((("stream/" + streamId) + "/tags"));
+}));
+(Blotre.prototype.getTag = (function(streamId, tag) {
+    var self = this;
+    return self.get(((("stream/" + streamId) + "/tags/") + tag));
+}));
+(Blotre.prototype.setTag = (function(streamId, tag) {
+    var self = this;
+    return self.put(((("stream/" + streamId) + "/tags/") + tag));
+}));
+(Blotre.prototype.deleteTag = (function(streamId, tag) {
+    var self = this;
+    return self.del(((("stream/" + streamId) + "/tags/") + tag));
 }));
 (module.exports = Blotre);

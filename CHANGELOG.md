@@ -1,5 +1,10 @@
 # ChangeLog #
 
+## 0.4.0 - September 1, 2015
+* Added helpers for tag apis.
+** `getTags`, `setTags`, `getTag`, `setTag`, `deleteTag`.
+* Added helper for joining stream components together, `joinUri`.
+
 ## 0.3.0 - July 12, 2015
 * Added `normalizeUri` to convert a uri into its normalized form.
 * Added `getWebsocketUrl` to get the url for the websocket apis.

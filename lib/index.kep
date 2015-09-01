@@ -25,7 +25,7 @@ var isExpiredResponse := \response ->
     response??.statusCode === 401 && let
         challenge = response.headers.('www-authenticate')
     in
-        challenge && challenge.match('error="invalid_token"');
+        challenge??.match('error="invalid_token"');
 
 /*
  ******************************************************************************/
@@ -46,6 +46,12 @@ Blotre.create := \client creds conf -> new Blotre(client, creds, conf);
 Blotre.normalizeUri := Blotre.prototype.normalizeUri := \uri ->
     encodeURI(uri.trim().toLowerCase());
 
+/**
+ * Merge multiple path components into a uri.
+ */
+Blotre.joinUri := Blotre.prototype.joinUri := \-segments(...)->
+    Blotre.normalizeUri <| Array.prototype.join.call(segments, '/');
+
 Blotre.prototype.getUrl := \options ={config}->
     getUrl({
         protocol: config.protocol,
@@ -56,6 +62,7 @@ Blotre.prototype.setCreds := \creds =self-> {
     self.creds = creds;
     if (self.config.onCredsChanged)
         self.config.onCredsChanged(self);
+    return self;
 };
 
 /**
@@ -78,7 +85,7 @@ Blotre.prototype.getAuthorizationUrl := \=self->
             redirect_uri: self.client.redirect_uri
         }
     };
-
+ 
 /**
  * Get the Url where a user can redeem a onetime code for a disposable client.
  */
@@ -185,10 +192,9 @@ Blotre.prototype.makeRequest := \options noRetry =self->
                 // If we have a refresh_token, attempt to exchange it for new creds
                 // and replay the request.
                 return self.redeemRefreshToken()
-                    .then \ newCreds -> {
-                        self.setCreds(newCreds);
-                        return self.makeRequest(self.setAuthHeader options, true);
-                    };
+                    .then \ newCreds -> 
+                        self.setCreds(newCreds)
+                            .makeRequest(self.setAuthHeader options, true);
             } else {
                 throw e;
             }
@@ -198,7 +204,7 @@ Blotre.prototype.makeRequest := \options noRetry =self->
  * GET request.
  */
 Blotre.prototype.get := \path options =self->
-    self.makeRequest {
+    self.makeRequest <| self.setAuthHeader {
         method: "GET",
         uri: self.getUrl { pathname: API_ROOT + path },
         qs: options || {},
@@ -248,6 +254,12 @@ Blotre.prototype.getUser := \userId =self->
 /* Stream Operations
  ******************************************************************************/
 /**
+ * Get a stream.
+ */
+Blotre.prototype.getStream := \id options =self->
+    self.get("stream/" + id, options);
+
+/**
  * Stream lookup.
  */
 Blotre.prototype.getStreams := \options =self->
@@ -258,12 +270,6 @@ Blotre.prototype.getStreams := \options =self->
  */
 Blotre.prototype.createStream := \body =self->
     self.put @ "stream" body;
-
-/**
- * Get a stream.
- */
-Blotre.prototype.getStream := \id options =self->
-    self.get("stream/" + id, options);
 
 /**
  * Delete an existing stream.
@@ -290,7 +296,7 @@ Blotre.prototype.getStreamChildren := \id options =self->
     self.get('stream/' + id + '/children', options);
 
 /**
- * Get the child of a stream.
+ * Get a child of a stream.
  */
 Blotre.prototype.getChild := \streamId childId options =self->
     self.get('stream/' + streamId + '/children/' + childId, options);
@@ -306,5 +312,35 @@ Blotre.prototype.createChild := \streamId childId =self->
  */
 Blotre.prototype.deleteChild := \streamId childId =self->
     self.del('stream/' + streamId + '/children/' + childId);
+
+/**
+ * Get the tags of a stream.
+ */
+Blotre.prototype.getTags := \streamId =self->
+    self.get('stream/' + streamId + '/tags');
+
+/**
+ * Set the tags of a stream.
+ */
+Blotre.prototype.setTags := \streamId tags =self->
+    self.post('stream/' + streamId + '/tags');
+
+/**
+ * Get a tag on a stream.
+ */
+Blotre.prototype.getTag := \streamId tag =self->
+    self.get('stream/' + streamId + '/tags/' + tag);
+
+/**
+ * Create a tag on a stream.
+ */
+Blotre.prototype.setTag := \streamId tag =self->
+    self.put('stream/' + streamId + '/tags/' + tag);
+
+/**
+ * Remove a tag on a stream.
+ */
+Blotre.prototype.deleteTag := \streamId tag =self->
+    self.del('stream/' + streamId + '/tags/' + tag);
 
 }
